@@ -1,0 +1,57 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BCC28F2C-87BF-42C4-B04B-9E9BDE398808}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AB858925-952F-4F34-B05A-5B59F101CD04}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FordNexus.Domain", "src\FordNexus.Domain\FordNexus.Domain.csproj", "{9A8A2FAA-991A-4388-A661-2BFAD0837B43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FordNexus.Application", "src\FordNexus.Application\FordNexus.Application.csproj", "{B07D341E-67FA-45E2-9204-26EA7FEF9619}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FordNexus.Infrastructure", "src\FordNexus.Infrastructure\FordNexus.Infrastructure.csproj", "{16909B83-DA29-426D-821E-E991D8AB95CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FordNexus.Api", "src\FordNexus.Api\FordNexus.Api.csproj", "{CD166A1C-06C6-4E58-9458-6B334FEF2D15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FordNexus.Api.Tests", "tests\FordNexus.Api.Tests\FordNexus.Api.Tests.csproj", "{84A26F3D-18A4-43E2-A306-1B5B4AD413C8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A8A2FAA-991A-4388-A661-2BFAD0837B43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A8A2FAA-991A-4388-A661-2BFAD0837B43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A8A2FAA-991A-4388-A661-2BFAD0837B43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A8A2FAA-991A-4388-A661-2BFAD0837B43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B07D341E-67FA-45E2-9204-26EA7FEF9619}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B07D341E-67FA-45E2-9204-26EA7FEF9619}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B07D341E-67FA-45E2-9204-26EA7FEF9619}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B07D341E-67FA-45E2-9204-26EA7FEF9619}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16909B83-DA29-426D-821E-E991D8AB95CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16909B83-DA29-426D-821E-E991D8AB95CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16909B83-DA29-426D-821E-E991D8AB95CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16909B83-DA29-426D-821E-E991D8AB95CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD166A1C-06C6-4E58-9458-6B334FEF2D15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD166A1C-06C6-4E58-9458-6B334FEF2D15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD166A1C-06C6-4E58-9458-6B334FEF2D15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD166A1C-06C6-4E58-9458-6B334FEF2D15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84A26F3D-18A4-43E2-A306-1B5B4AD413C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84A26F3D-18A4-43E2-A306-1B5B4AD413C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84A26F3D-18A4-43E2-A306-1B5B4AD413C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84A26F3D-18A4-43E2-A306-1B5B4AD413C8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A8A2FAA-991A-4388-A661-2BFAD0837B43} = {BCC28F2C-87BF-42C4-B04B-9E9BDE398808}
+		{B07D341E-67FA-45E2-9204-26EA7FEF9619} = {BCC28F2C-87BF-42C4-B04B-9E9BDE398808}
+		{16909B83-DA29-426D-821E-E991D8AB95CD} = {BCC28F2C-87BF-42C4-B04B-9E9BDE398808}
+		{CD166A1C-06C6-4E58-9458-6B334FEF2D15} = {BCC28F2C-87BF-42C4-B04B-9E9BDE398808}
+		{84A26F3D-18A4-43E2-A306-1B5B4AD413C8} = {AB858925-952F-4F34-B05A-5B59F101CD04}
+	EndGlobalSection
+EndGlobal
