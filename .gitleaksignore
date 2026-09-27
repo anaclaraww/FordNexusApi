@@ -1,0 +1,4 @@
+# Chave JWT antiga, exposta no primeiro commit (26/09/2026).
+# Tratamento: chave rotacionada; a API passou a ler Jwt__SigningKey de variavel de ambiente/cofre.
+# A chave antiga nao e aceita em nenhum ambiente.
+24456343024a2b445437e66a65e8b6075c24a916:src/FordNexus.Api/appsettings.json:ford-nexus-jwt-signing-key:16
