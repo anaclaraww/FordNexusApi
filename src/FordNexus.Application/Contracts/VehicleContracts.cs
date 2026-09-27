@@ -5,6 +5,7 @@ namespace FordNexus.Application.Contracts;
 
 public sealed class VehicleQuery : PageQuery
 {
+    [StringLength(80)]
     public string? Model { get; set; }
 }
 
@@ -30,6 +31,7 @@ public sealed class CreateVehicleRequest
 
     public bool ContactConsent { get; set; }
     public bool DataSharingConsent { get; set; }
+    public bool TelemetryConsent { get; set; }
 
     public Guid? HomeDealershipId { get; set; }
 }
@@ -47,6 +49,7 @@ public sealed class UpdateVehicleRequest
 
     public bool ContactConsent { get; set; }
     public bool DataSharingConsent { get; set; }
+    public bool TelemetryConsent { get; set; }
 }
 
 public sealed record VehicleResponse(
@@ -60,7 +63,9 @@ public sealed record VehicleResponse(
     bool ContactConsent,
     bool DataSharingConsent,
     Guid HomeDealershipId,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    bool TelemetryConsent,
+    DateTime? LastTelemetryAt);
 
 public sealed class CreateServiceOrderRequest
 {

@@ -20,6 +20,13 @@ public sealed class UsersController(IUserService users) : ControllerBase
     public async Task<ActionResult<PagedResponse<UserResponse>>> List([FromQuery] PageQuery query, CancellationToken ct) =>
         Ok(await users.ListAsync(query, ct));
 
+    [SwaggerOperation(Summary = "Relatório de auditoria de permissões.",
+        Description = "Lista cada usuário com perfil, escopo, último acesso e achados (Admin a revisar, conta sem uso há 90 dias, oficina sem certificação, conta bloqueada). Base da revisão mensal de acessos.")]
+    [HttpGet("permissions-report")]
+    [ProducesResponseType(typeof(PermissionReportResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PermissionReportResponse>> PermissionReport(CancellationToken ct) =>
+        Ok(await users.GetPermissionReportAsync(ct));
+
     [SwaggerOperation(Summary = "Obtém um usuário.")]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]

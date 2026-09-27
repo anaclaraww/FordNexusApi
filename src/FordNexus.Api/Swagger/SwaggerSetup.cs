@@ -58,8 +58,8 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
 
         operation.Description = AppendLine(operation.Description,
             policies.Count > 0
-                ? $"🔒 **Protegido** — política: `{string.Join("`, `", policies)}`."
-                : "🔒 **Protegido** — qualquer usuário autenticado.");
+                ? $"🔒 **Protegido** : política: `{string.Join("`, `", policies)}`."
+                : "🔒 **Protegido** : qualquer usuário autenticado.");
 
         operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Token ausente, inválido ou expirado." });
         if (policies.Count > 0)

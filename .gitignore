@@ -5,3 +5,12 @@ obj/
 *.user
 TestResults/
 coverage/
+.env
+*.sarif
+sbom*.json
+vulnerable-packages.txt
+deploy/mqtt/certs/*
+!deploy/mqtt/certs/.gitkeep
+docs/
+Claude outputs/
+pipeline-github.zip

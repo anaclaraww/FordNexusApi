@@ -1,0 +1,26 @@
+title = "Ford Nexus"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "ford-nexus-jwt-signing-key"
+description = "Chave de assinatura JWT em arquivo de configuração"
+regex = '''(?i)"SigningKey"\s*:\s*"([^"]{16,})"'''
+secretGroup = 1
+keywords = ["signingkey"]
+
+[[rules]]
+id = "ford-nexus-encryption-key"
+description = "Chave de criptografia de dados em arquivo de configuração"
+regex = '''(?i)"(?:Encryption)?Key"\s*:\s*"([A-Za-z0-9+/]{40,}={0,2})"'''
+secretGroup = 1
+keywords = ["key"]
+
+[allowlist]
+description = "Artefatos gerados"
+paths = [
+  '''(^|/)TestResults/''',
+  '''\.sarif$''',
+  '''(^|/)(bin|obj)/'''
+]

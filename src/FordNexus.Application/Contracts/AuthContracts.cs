@@ -4,10 +4,10 @@ namespace FordNexus.Application.Contracts;
 
 public sealed class LoginRequest
 {
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(160)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, DataType(DataType.Password)]
+    [Required, StringLength(128), DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 }
 
@@ -32,12 +32,10 @@ public sealed class CreateUserRequest
     [Required, StringLength(120, MinimumLength = 3)]
     public string Name { get; set; } = string.Empty;
 
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(160)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, StringLength(64, MinimumLength = 8), DataType(DataType.Password)]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$",
-        ErrorMessage = "A senha deve conter letra maiúscula, minúscula e número.")]
+    [Required, StringLength(128, MinimumLength = 12), DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
     [Required]

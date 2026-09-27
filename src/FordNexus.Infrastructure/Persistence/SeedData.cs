@@ -46,8 +46,8 @@ public static class SeedData
             NewUser("Pedro — Oficina Itu", "oficina.pendente@fordnexus.com", "Oficina@123", UserRole.Workshop, workshop: WorkshopPendingId),
             NewUser("Seguradora Parceira", "seguradora@fordnexus.com", "Parceiro@123", UserRole.Partner));
 
-        var ka = NewVehicle(KaVin, "Ka SE 1.0", 2016, 71_000, "Rafael Souza", "+5515991110001", true, true, DealershipSorocabaId);
-        var eco = NewVehicle(EcoSportVin, "EcoSport FreeStyle 1.5", 2019, 49_500, "Juliana Lima", "+5515991110002", true, false, DealershipSorocabaId);
+        var ka = NewVehicle(KaVin, "Ka SE 1.0", 2016, 71_000, "Rafael Souza", "+5515991110001", true, true, DealershipSorocabaId, telemetry: true);
+        var eco = NewVehicle(EcoSportVin, "EcoSport FreeStyle 1.5", 2019, 49_500, "Juliana Lima", "+5515991110002", true, false, DealershipSorocabaId, telemetry: true);
         var ranger = NewVehicle(RangerVin, "Ranger XLS 2.2 Diesel", 2022, 23_000, "Marcos Pereira", "+5515991110003", true, true, DealershipSorocabaId);
         var fiesta = NewVehicle(FiestaVin, "Fiesta Hatch 1.6", 2014, 118_000, "Beatriz Alves", "+5515991110004", false, false, DealershipSorocabaId);
         var kaSedan = NewVehicle(KaSedanVin, "Ka Sedan 1.5", 2018, 64_000, "Lucas Martins", "+5519991110005", true, true, DealershipCampinasId);
@@ -63,9 +63,9 @@ public static class SeedData
 
         await db.SaveChangesAsync(ct);
 
-        Vehicle NewVehicle(string vin, string model, int year, int km, string owner, string phone, bool contact, bool sharing, Guid dealership) =>
+        Vehicle NewVehicle(string vin, string model, int year, int km, string owner, string phone, bool contact, bool sharing, Guid dealership, bool telemetry = false) =>
             new() { Vin = vin, Model = model, ModelYear = year, CurrentMileage = km, OwnerName = owner, OwnerPhone = phone,
-                    ContactConsent = contact, DataSharingConsent = sharing, HomeDealershipId = dealership, CreatedAt = now };
+                    ContactConsent = contact, DataSharingConsent = sharing, TelemetryConsent = telemetry, HomeDealershipId = dealership, CreatedAt = now };
 
         ServiceOrder Order(Vehicle v, ServiceType type, string description, int km, decimal amount, DateTime at,
             Guid? dealership = null, Guid? workshop = null, bool genuine = true) =>

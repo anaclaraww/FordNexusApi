@@ -1,0 +1,297 @@
+name: DevSecOps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devsecops-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  IMAGE: ford-nexus-api
+
+jobs:
+  secrets:
+    name: Secret scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (histórico completo)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo" ghcr.io/gitleaks/gitleaks:v8.21.2 \
+            detect --source /repo --config /repo/.gitleaks.toml \
+            --redact --verbose --exit-code 1 \
+            --report-format sarif --report-path /repo/gitleaks.sarif
+
+      - name: Publicar no GitHub Security
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+  build-test:
+    name: Build e testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - run: dotnet restore FordNexus.sln
+
+      - run: dotnet build FordNexus.sln -c Release --no-restore
+
+      - name: Testes (inclui testes de segurança)
+        run: >
+          dotnet test FordNexus.sln -c Release --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --logger "html;LogFileName=test-results.html"
+          --results-directory TestResults
+          --collect:"XPlat Code Coverage"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: TestResults
+
+  sca:
+    name: SCA (dependências NuGet)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - run: dotnet restore FordNexus.sln
+
+      - name: Pacotes com vulnerabilidade conhecida
+        run: |
+          dotnet list FordNexus.sln package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.txt
+          if grep -qE "\b(High|Critical)\b" vulnerable-packages.txt; then
+            echo "::error::Dependência com vulnerabilidade High/Critical encontrada"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sca-report
+          path: vulnerable-packages.txt
+
+      - name: Revisão de dependências do PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: always
+
+  sast-semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: pipx install semgrep
+
+      - name: Relatório completo
+        run: >
+          semgrep scan --metrics=off
+          --config p/csharp --config p/secrets --config p/dockerfile --config p/kubernetes
+          --sarif --output semgrep.sarif
+
+      - name: Publicar no GitHub Security
+        if: always() && hashFiles('semgrep.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Gate (achados de severidade ERROR)
+        run: >
+          semgrep scan --metrics=off --quiet
+          --config p/csharp --config p/secrets --config p/dockerfile --config p/kubernetes
+          --severity ERROR --error
+
+  sast-codeql:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ github.event.repository.private }}
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: manual
+          queries: security-extended
+
+      - run: dotnet build FordNexus.sln -c Release
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql-csharp
+
+  iac:
+    name: IaC (Dockerfile, Kubernetes)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy config (relatório)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac.sarif
+          exit-code: "0"
+
+      - name: Publicar no GitHub Security
+        if: always() && hashFiles('trivy-iac.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac.sarif
+          category: trivy-iac
+
+      - name: Gate (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  container:
+    name: Container (build + Trivy + SBOM)
+    runs-on: ubuntu-latest
+    needs: [secrets, build-test, sca, sast-semgrep, iac]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build da imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+
+      - name: Trivy image (relatório)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: "0"
+
+      - name: Publicar no GitHub Security
+        if: always() && hashFiles('trivy-image.sarif') != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      - name: Gate (HIGH/CRITICAL com correção disponível)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          format: cyclonedx
+          output: sbom.cdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+
+  deploy:
+    name: Deploy (produção)
+    runs-on: ubuntu-latest
+    needs: [container, sast-codeql]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.DEPLOY_ENABLED == 'true'
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no Azure via OIDC (sem senha guardada)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build e push para o Azure Container Registry
+        run: |
+          az acr login --name "${{ vars.ACR_NAME }}"
+          docker build -t "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}:${{ github.sha }}" .
+          docker push "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}:${{ github.sha }}"
+
+      - name: Atualizar Container App
+        run: |
+          az containerapp update \
+            --name "${{ vars.CONTAINERAPP_NAME }}" \
+            --resource-group "${{ vars.RESOURCE_GROUP }}" \
+            --image "${{ vars.ACR_NAME }}.azurecr.io/${{ env.IMAGE }}:${{ github.sha }}"

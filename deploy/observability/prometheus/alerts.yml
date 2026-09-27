@@ -1,0 +1,75 @@
+groups:
+  - name: ford-nexus-disponibilidade
+    rules:
+      - alert: ApiFora
+        expr: up{job="ford-nexus-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API Ford Nexus não responde há 1 minuto"
+          runbook: "docs/OBSERVABILIDADE-RESPOSTA.md#playbook-api-fora"
+
+      - alert: TaxaDeErro5xxAlta
+        expr: sum(rate(http_requests_received_total{code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_received_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mais de 5% das requisições com erro 5xx"
+
+      - alert: LatenciaP95Alta
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 de latência acima de 1 segundo"
+
+  - name: ford-nexus-seguranca
+    rules:
+      - alert: SuspeitaDeForcaBruta
+        expr: sum(increase(fordnexus_auth_login_total{result=~"failed|locked"}[5m])) >= 5
+        labels:
+          severity: high
+        annotations:
+          summary: "5 ou mais logins com falha em 5 minutos"
+          runbook: "docs/OBSERVABILIDADE-RESPOSTA.md#playbook-força-bruta"
+
+      - alert: ContaBloqueada
+        expr: increase(fordnexus_auth_lockouts_total[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Conta bloqueada por excesso de senhas erradas"
+
+      - alert: TentativaDeAcessoForaDoEscopo
+        expr: sum(increase(fordnexus_authz_denied_total{reason="scope"}[5m])) >= 3
+        labels:
+          severity: high
+        annotations:
+          summary: "Usuário tentando acessar dados de outra concessionária/oficina"
+
+      - alert: RateLimitDisparando
+        expr: sum(increase(fordnexus_ratelimit_rejected_total[5m])) >= 5
+        labels:
+          severity: warning
+        annotations:
+          summary: "Requisições bloqueadas por rate limit"
+
+  - name: ford-nexus-iot
+    rules:
+      - alert: BrokerMqttDesconectado
+        expr: fordnexus_mqtt_connected == 0
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: "API sem conexão com o broker MQTT: telemetria parada"
+
+      - alert: TelemetriaRejeitada
+        expr: sum(increase(fordnexus_mqtt_messages_total{result=~"rejected|ignored"}[10m])) >= 3
+        labels:
+          severity: warning
+        annotations:
+          summary: "Leituras de telemetria rejeitadas (possível adulteração de hodômetro ou dispositivo com defeito)"

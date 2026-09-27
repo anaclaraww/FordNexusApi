@@ -10,7 +10,8 @@ internal static class MappingExtensions
 
     public static VehicleResponse ToResponse(this Vehicle v) =>
         new(v.Id, v.Vin, v.Model, v.ModelYear, v.CurrentMileage, v.OwnerName, v.OwnerPhone,
-            v.ContactConsent, v.DataSharingConsent, v.HomeDealershipId, v.CreatedAt);
+            v.ContactConsent, v.DataSharingConsent, v.HomeDealershipId, v.CreatedAt,
+            v.TelemetryConsent, v.LastTelemetryAt);
 
     public static ServiceOrderResponse ToResponse(this ServiceOrder o, string vin) =>
         new(o.Id, vin, o.ServiceType.ToString(), o.Description, o.Mileage, o.Amount, o.GenuineParts,
@@ -23,6 +24,9 @@ internal static class MappingExtensions
 
     public static DealershipResponse ToResponse(this Dealership d) =>
         new(d.Id, d.Name, d.Cnpj, d.City, d.State, d.ServiceBays);
+
+    public static AuditEntryResponse ToResponse(this AuditEntry a) =>
+        new(a.Id, a.Timestamp, a.Action, a.Resource, a.ResourceId, a.UserId, a.Role, a.IpAddress, a.TraceId, a.Details);
 
     public static WorkshopResponse ToResponse(this Workshop w) =>
         new(w.Id, w.Name, w.Cnpj, w.City, w.State, w.Status.ToString(), w.CertifiedAt, w.DistributorDealershipId);

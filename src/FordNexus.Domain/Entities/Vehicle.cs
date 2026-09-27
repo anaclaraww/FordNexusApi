@@ -15,6 +15,10 @@ public class Vehicle
 
     public bool DataSharingConsent { get; set; }
 
+    public bool TelemetryConsent { get; set; }
+
+    public DateTime? LastTelemetryAt { get; set; }
+
     public Guid HomeDealershipId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

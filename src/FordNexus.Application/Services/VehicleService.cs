@@ -20,7 +20,7 @@ public interface IVehicleService
     Task<ServiceOrderResponse> GetServiceOrderAsync(string vin, Guid id, CancellationToken ct);
 }
 
-public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time) : IVehicleService
+public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time, IAuditLog audit) : IVehicleService
 {
     public async Task<PagedResponse<VehicleResponse>> ListAsync(VehicleQuery query, CancellationToken ct)
     {
@@ -76,6 +76,7 @@ public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser,
             OwnerPhone = request.OwnerPhone,
             ContactConsent = request.ContactConsent,
             DataSharingConsent = request.DataSharingConsent,
+            TelemetryConsent = request.TelemetryConsent,
             HomeDealershipId = homeDealershipId,
             CreatedAt = time.GetUtcNow().UtcDateTime
         };
@@ -96,8 +97,16 @@ public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser,
         vehicle.OwnerName = request.OwnerName.Trim();
         vehicle.OwnerPhone = request.OwnerPhone;
         vehicle.CurrentMileage = request.CurrentMileage;
+        var consentChanges = new List<string>();
+        if (vehicle.ContactConsent != request.ContactConsent) consentChanges.Add($"contato:{vehicle.ContactConsent}->{request.ContactConsent}");
+        if (vehicle.DataSharingConsent != request.DataSharingConsent) consentChanges.Add($"compartilhamento:{vehicle.DataSharingConsent}->{request.DataSharingConsent}");
+        if (vehicle.TelemetryConsent != request.TelemetryConsent) consentChanges.Add($"telemetria:{vehicle.TelemetryConsent}->{request.TelemetryConsent}");
+
         vehicle.ContactConsent = request.ContactConsent;
         vehicle.DataSharingConsent = request.DataSharingConsent;
+        vehicle.TelemetryConsent = request.TelemetryConsent;
+        if (consentChanges.Count > 0)
+            audit.Record("vehicle.consent_changed", "vehicle", vehicle.Vin, string.Join("; ", consentChanges));
         await db.SaveChangesAsync(ct);
         return vehicle.ToResponse();
     }
@@ -112,6 +121,8 @@ public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser,
             ?? throw new NotFoundException($"Veículo com VIN {normalized} não encontrado.");
 
         db.Vehicles.Remove(vehicle);
+        audit.Record("vehicle.deleted", "vehicle", vehicle.Vin,
+            $"{vehicle.ServiceOrders.Count} ordens e {vehicle.Appointments.Count} agendamentos removidos");
         await db.SaveChangesAsync(ct);
     }
 
@@ -125,6 +136,12 @@ public sealed class VehicleService(INexusDbContext db, ICurrentUser currentUser,
 
         if (currentUser.IsInRole(Roles.Partner) && !vehicle.DataSharingConsent)
             throw new ForbiddenException("O proprietário não autorizou o compartilhamento do histórico deste veículo com parceiros.");
+
+        if (currentUser.IsInRole(Roles.Partner))
+        {
+            audit.Record("vehicle.history_shared", "vehicle", vehicle.Vin, "histórico consultado por parceiro");
+            await db.SaveChangesAsync(ct);
+        }
 
         var timeline = vehicle.ServiceOrders
             .OrderByDescending(o => o.PerformedAt)

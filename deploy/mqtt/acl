@@ -1,0 +1,4 @@
+user ford-nexus-api
+topic read vehicles/+/telemetry
+
+pattern write vehicles/%u/telemetry

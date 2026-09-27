@@ -14,7 +14,7 @@ public interface IDealershipService
     Task<MaintenanceQueueResponse> GetMaintenanceQueueAsync(Guid id, int limit, CancellationToken ct);
 }
 
-public sealed class DealershipService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time) : IDealershipService
+public sealed class DealershipService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time, INexusMetrics metrics) : IDealershipService
 {
     // regra do manual do proprietário mesmo, não precisa de ML pra saber que tá na hora da revisão
     public const int RevisionIntervalKm = 10_000;
@@ -73,6 +73,7 @@ public sealed class DealershipService(INexusDbContext db, ICurrentUser currentUs
         }
 
         var ordered = due.OrderByDescending(i => i.UrgencyScore).ToList();
+        metrics.MaintenanceQueueCalculated(id, ordered.Count);
         return new MaintenanceQueueResponse(id, now, ordered.Count, ordered.Take(limit).ToList());
     }
 }

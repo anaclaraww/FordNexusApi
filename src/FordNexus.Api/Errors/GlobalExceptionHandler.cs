@@ -1,9 +1,10 @@
+using FordNexus.Application.Abstractions;
 using FordNexus.Application.Common;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace FordNexus.Api.Errors;
 
-public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, INexusMetrics metrics) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext http, Exception exception, CancellationToken ct)
     {
@@ -19,7 +20,14 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         };
 
         if (status == StatusCodes.Status500InternalServerError)
-            logger.LogError(exception, "Erro não tratado em {Method} {Path}", http.Request.Method, http.Request.Path);
+            logger.LogError(SecurityEvents.UnhandledError, exception, "{Event} erro não tratado em {Method} {Path}",
+                SecurityEvents.UnhandledError.Name, http.Request.Method, http.Request.Path.Value);
+        else if (exception is ForbiddenException)
+        {
+            metrics.AccessDenied("scope");
+            logger.LogWarning(SecurityEvents.ScopeViolation, "{Event} {Method} {Path}: {Message}",
+                SecurityEvents.ScopeViolation.Name, http.Request.Method, http.Request.Path.Value, exception.Message);
+        }
         else
             logger.LogInformation("{Status} em {Method} {Path}: {Message}", status, http.Request.Method, http.Request.Path, exception.Message);
 

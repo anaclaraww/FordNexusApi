@@ -11,6 +11,7 @@ public interface INexusDbContext
     DbSet<Vehicle> Vehicles { get; }
     DbSet<ServiceOrder> ServiceOrders { get; }
     DbSet<Appointment> Appointments { get; }
+    DbSet<AuditEntry> AuditEntries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,118 @@
+x-logging: &logging
+  labels:
+    ford-nexus.logs: "true"
+
+services:
+  api:
+    build: .
+    image: ford-nexus-api:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?defina JWT_SIGNING_KEY no arquivo .env}
+      Encryption__Key: ${ENCRYPTION_KEY:?defina ENCRYPTION_KEY no arquivo .env}
+      Metrics__Port: "9091"
+      Mqtt__Enabled: "true"
+      Mqtt__Host: mosquitto
+      Mqtt__Port: "8883"
+      Mqtt__CaCertificatePath: /certs/ca.crt
+      Mqtt__ClientCertificatePath: /certs/api.crt
+      Mqtt__ClientKeyPath: /certs/api.key
+    volumes:
+      - ./deploy/mqtt/certs/ca.crt:/certs/ca.crt:ro
+      - ./deploy/mqtt/certs/api.crt:/certs/api.crt:ro
+      - ./deploy/mqtt/certs/api.key:/certs/api.key:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+    <<: *logging
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    user: "1883:1883"
+    ports:
+      - "127.0.0.1:8883:8883"
+    volumes:
+      - ./deploy/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mqtt/acl:/mosquitto/config/acl:ro
+      - ./deploy/mqtt/certs/ca.crt:/mosquitto/certs/ca.crt:ro
+      - ./deploy/mqtt/certs/server.crt:/mosquitto/certs/server.crt:ro
+      - ./deploy/mqtt/certs/server.key:/mosquitto/certs/server.key:ro
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    <<: *logging
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./deploy/observability/prometheus:/etc/prometheus:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    volumes:
+      - ./deploy/observability/promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?defina GRAFANA_ADMIN_PASSWORD no arquivo .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+  mqtt-certs:
+    image: alpine:3.20
+    profiles: ["setup"]
+    volumes:
+      - ./deploy/mqtt/certs:/certs
+      - ./deploy/mqtt/gerar-certificados.sh:/gerar-certificados.sh:ro
+    entrypoint: ["sh", "/gerar-certificados.sh"]
+
+  veiculo:
+    image: eclipse-mosquitto:2.0.18
+    profiles: ["tools"]
+    volumes:
+      - ./deploy/mqtt/certs:/certs:ro
+    entrypoint: ["mosquitto_pub"]

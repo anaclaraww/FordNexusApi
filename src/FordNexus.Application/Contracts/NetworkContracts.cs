@@ -7,6 +7,7 @@ public sealed record DealershipResponse(Guid Id, string Name, string Cnpj, strin
 
 public sealed class WorkshopQuery : PageQuery
 {
+    [StringLength(80)]
     public string? City { get; set; }
 
     public CertificationStatus? Status { get; set; }

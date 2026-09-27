@@ -19,7 +19,7 @@ public interface IAppointmentService
     Task DeleteAsync(Guid id, CancellationToken ct);
 }
 
-public sealed class AppointmentService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time) : IAppointmentService
+public sealed class AppointmentService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time, IAuditLog audit, INexusMetrics metrics) : IAppointmentService
 {
     public async Task<PagedResponse<AppointmentResponse>> ListAsync(AppointmentQuery query, CancellationToken ct)
     {
@@ -81,6 +81,7 @@ public sealed class AppointmentService(INexusDbContext db, ICurrentUser currentU
         };
         db.Appointments.Add(appointment);
         await db.SaveChangesAsync(ct);
+        metrics.AppointmentCreated();
         return appointment.ToResponse(vehicle);
     }
 
@@ -122,6 +123,7 @@ public sealed class AppointmentService(INexusDbContext db, ICurrentUser currentU
         var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id, ct)
                           ?? throw new NotFoundException($"Agendamento {id} não encontrado.");
         db.Appointments.Remove(appointment);
+        audit.Record("appointment.deleted", "appointment", appointment.Id.ToString(), $"status {appointment.Status}");
         await db.SaveChangesAsync(ct);
     }
 

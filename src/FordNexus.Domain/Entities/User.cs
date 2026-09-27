@@ -14,5 +14,13 @@ public class User
 
     public Guid? WorkshopId { get; set; }
 
+    public int FailedLoginAttempts { get; set; }
+
+    public DateTime? LockoutEndUtc { get; set; }
+
+    public DateTime? LastLoginAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public bool IsLockedOut(DateTime nowUtc) => LockoutEndUtc is { } end && end > nowUtc;
 }

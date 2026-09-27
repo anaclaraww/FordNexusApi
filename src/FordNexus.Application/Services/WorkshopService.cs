@@ -17,7 +17,7 @@ public interface IWorkshopService
     Task<WorkshopResponse> UpdateCertificationAsync(Guid id, UpdateCertificationRequest request, CancellationToken ct);
 }
 
-public sealed class WorkshopService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time) : IWorkshopService
+public sealed class WorkshopService(INexusDbContext db, ICurrentUser currentUser, TimeProvider time, IAuditLog audit) : IWorkshopService
 {
     public async Task<PagedResponse<WorkshopResponse>> ListAsync(WorkshopQuery query, CancellationToken ct)
     {
@@ -72,6 +72,7 @@ public sealed class WorkshopService(INexusDbContext db, ICurrentUser currentUser
             Status = CertificationStatus.Pending
         };
         db.Workshops.Add(workshop);
+        audit.Record("workshop.created", "workshop", workshop.Id.ToString(), workshop.Name);
         await db.SaveChangesAsync(ct);
         return workshop.ToResponse();
     }
@@ -80,7 +81,10 @@ public sealed class WorkshopService(INexusDbContext db, ICurrentUser currentUser
     {
         var workshop = await db.Workshops.FirstOrDefaultAsync(w => w.Id == id, ct)
                        ?? throw new NotFoundException($"Oficina {id} não encontrada.");
+        var previous = workshop.Status;
         workshop.ChangeCertification(request.Status!.Value, time.GetUtcNow().UtcDateTime);
+        if (previous != workshop.Status)
+            audit.Record("workshop.certification_changed", "workshop", workshop.Id.ToString(), $"{previous}->{workshop.Status}");
         await db.SaveChangesAsync(ct);
         return workshop.ToResponse();
     }

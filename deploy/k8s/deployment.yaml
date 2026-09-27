@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ford-nexus-api
+  namespace: ford-nexus
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ford-nexus-api
+  namespace: ford-nexus
+  labels:
+    app: ford-nexus-api
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: ford-nexus-api
+  template:
+    metadata:
+      labels:
+        app: ford-nexus-api
+    spec:
+      serviceAccountName: ford-nexus-api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/SEU-USUARIO/ford-nexus-api:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: Jwt__SigningKey
+              valueFrom:
+                secretKeyRef:
+                  name: ford-nexus-secrets
+                  key: jwt-signing-key
+            - name: Encryption__Key
+              valueFrom:
+                secretKeyRef:
+                  name: ford-nexus-secrets
+                  key: encryption-key
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            privileged: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ford-nexus-api
+  namespace: ford-nexus
+spec:
+  type: ClusterIP
+  selector:
+    app: ford-nexus-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

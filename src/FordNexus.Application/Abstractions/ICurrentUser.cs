@@ -7,5 +7,7 @@ public interface ICurrentUser
     string? Role { get; }
     Guid? DealershipId { get; }
     Guid? WorkshopId { get; }
+    string? IpAddress { get; }
+    string? TraceId { get; }
     bool IsInRole(string role);
 }

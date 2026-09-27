@@ -13,6 +13,8 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
     public string? Role => Principal?.FindFirstValue(NexusClaimTypes.Role);
     public Guid? DealershipId => ReadGuid(NexusClaimTypes.DealershipId);
     public Guid? WorkshopId => ReadGuid(NexusClaimTypes.WorkshopId);
+    public string? IpAddress => accessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+    public string? TraceId => System.Diagnostics.Activity.Current?.TraceId.ToString() ?? accessor.HttpContext?.TraceIdentifier;
 
     public bool IsInRole(string role) => Principal?.IsInRole(role) ?? false;
 
