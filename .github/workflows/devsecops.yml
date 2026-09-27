@@ -44,7 +44,7 @@ jobs:
       - name: Publicar no GitHub Security
         if: always() && hashFiles('gitleaks.sarif') != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gitleaks.sarif
           category: gitleaks
@@ -134,7 +134,7 @@ jobs:
       - name: Publicar no GitHub Security
         if: always() && hashFiles('semgrep.sarif') != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -160,7 +160,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: csharp
           build-mode: manual
@@ -168,7 +168,7 @@ jobs:
 
       - run: dotnet build FordNexus.sln -c Release
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           category: codeql-csharp
 
@@ -193,7 +193,7 @@ jobs:
       - name: Publicar no GitHub Security
         if: always() && hashFiles('trivy-iac.sarif') != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-iac.sarif
           category: trivy-iac
@@ -238,7 +238,7 @@ jobs:
       - name: Publicar no GitHub Security
         if: always() && hashFiles('trivy-image.sarif') != ''
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
