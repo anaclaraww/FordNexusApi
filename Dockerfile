@@ -11,7 +11,7 @@ RUN dotnet restore src/FordNexus.Api/FordNexus.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/FordNexus.Api/FordNexus.Api.csproj -c Release -o /app --no-restore /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
